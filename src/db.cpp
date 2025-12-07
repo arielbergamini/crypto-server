@@ -3,9 +3,28 @@
 #include <iostream>
 #include <string>
 
+#include "db.h"
 #include "sqlite3.h"
 
 using namespace std;
+
+
+bool initDb(const string &dbName) {
+
+};
+
+bool addUser(const string &username, const string &email, const string &hash) {
+
+};
+
+bool getUser(const string &username) {
+
+};
+
+bool authLogin(int userId, const string &ipAddr) {
+
+};
+
 
 int main (int argc, char* argv[]) {
 
