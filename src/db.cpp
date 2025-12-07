@@ -19,8 +19,14 @@ int main (int argc, char* argv[]) {
         "date_registered TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
         "last_login TIMESTAMP);";
 
+    //keys table
+    std::string sql2 = "CREATE TABLE IF NOT EXISTS keys ("
+        "kid INTEGER PRIMARY KEY AUTOINCREMENT,"
+        "key BLOB NOT NULL,"
+        "exp INTEGER NOT NULL);";
+
     //auth logs table
-    std::string sql2 = "CREATE TABLE IF NOT EXISTS auth_logs ("
+    std::string sql3 = "CREATE TABLE IF NOT EXISTS auth_logs ("
         "id INTEGER PRIMARY KEY AUTOINCREMENT,"
         "request_ip TEXT NOT NULL, "
         "request_timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,"
