@@ -7,16 +7,17 @@
 #include <cstdio>
 
 #include "db.h"
+#include "crypto.h"
 
 int main() {
     crow::SimpleApp app;
-
-    //routes for user registration & authN
+    
     //user registration route
+    // --
+    // --
     CROW_ROUTE(app, "/users").methods("POST"_method)([](const crow::request &req) {
         //1 -- parse json
         auto body = crow::json::load(req.body);
-
         if (!body) {
             return crow::response(400, "invalid json");
         }
@@ -29,7 +30,7 @@ int main() {
         std::string email = body["email"].s();
 
         //2 -- generate hashed password
-        std::string hash = "hashed: " + password; //FIXME
+        std::string hash = "hashed_" + password; //FIXME
 
         //3 -- insert into users/ 
         if (!addUser(username, email, hash)) {
@@ -39,10 +40,13 @@ int main() {
         //4 -- return password
         crow::json::wvalue res;
         res["status"] = "success";
-        res["password"] = "password";
+        res["password"] = password;
+        return crow::response{res};
     });
     
     //user authN route
+    // --
+    // --
     CROW_ROUTE(app, "/auth_log").methods("POST"_method)([](const crow::request &req) {
         //1 -- lookup user
         auto body = crow::json::load(req.body);

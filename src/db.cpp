@@ -4,17 +4,18 @@
 #include <string>
 
 #include "db.h"
-#include "sqlite3.h"
+#include "crypto.h"
+#include "sqlite/sqlite3.h"
 
 using namespace std;
 
 //add user to appropriate table
-bool addUser(const string &username, const string &email, const string &hash) {
+bool addUser(const string &username, const string &email, const string &password_hash) {
     sqlite3* db;
     sqlite3_open("airs.db", &db);
 
     const char* sql =
-        "INSERT INTO usrs (username, hash, email) "
+        "INSERT INTO users (username, hash, email) "
         "VALUES (?, ?, ?);";
     
     sqlite3_stmt* stmt;
@@ -27,7 +28,7 @@ bool addUser(const string &username, const string &email, const string &hash) {
 
     //bind entered text to table cell
     sqlite3_bind_text(stmt, 1, username.c_str(), -1, SQLITE_TRANSIENT);
-    sqlite3_bind_text(stmt, 2, hash.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 2, password_hash.c_str(), -1, SQLITE_TRANSIENT);
     sqlite3_bind_text(stmt, 3, email.c_str(), -1, SQLITE_TRANSIENT);
 
     rc = sqlite3_step(stmt);
@@ -40,12 +41,12 @@ bool addUser(const string &username, const string &email, const string &hash) {
 };
 
 //get user from table, used to verify if user exists
-bool getUser(const string &username) {
+bool getUser(const string &username, User &userOut) {
     sqlite3* db;
     sqlite3_open("airs.db", &db);
 
     const char* sql =
-        "SELECT id FROM users WHERE username = ?;";
+        "SELECT id, username, email FROM users WHERE username = ?;";
 
     sqlite3_stmt* stmt;
     sqlite3_prepare_v2(db, sql, -1, &stmt, nullptr);
@@ -54,10 +55,15 @@ bool getUser(const string &username) {
     int rc = sqlite3_step(stmt);
     bool found = (rc == SQLITE_ROW);
 
+    if(found) {
+        userOut.id = sqlite3_column_int(stmt, 0);
+        userOut.username = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 1));
+        userOut.email = reinterpret_cast<const char*>(sqlite3_column_text(stmt, 2));
+    }
+
     sqlite3_finalize(stmt);
     sqlite3_close(db);
-
-    return found;
+    return found; //return the user found
 };
 
 //log auth attempts
@@ -82,6 +88,28 @@ bool authLogin(int userId, const string &ipAddr) {
     return rc == SQLITE_DONE;
 };
 
+bool addKey(const std::vector<uint8_t> &uncensoredKey, int exp) {
+    std::vector<uint8_t> key = getEnvKey();
+    std::vector<uint8_t> iv(rand());
+    auto cipher = encrypt(uncensoredKey, key, iv);
+
+    sqlite3* db;
+    sqlite3_open("airs.db", &db);
+
+    sqlite3_stmt* stmt;
+    sqlite3_prepare_v2(db,
+        "INSERT INTO keys (key, exp) VALUES (?, ?);",
+        -1, &stmt, nullptr);
+
+    sqlite3_bind_blob(stmt, 1, cipher.data(), cipher.size(), SQLITE_STATIC);
+    sqlite3_bind_int(stmt, 2, exp);
+
+    int rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+
+    return rc == SQLITE_DONE;
+};
 
 int main (int argc, char* argv[]) {
 
@@ -120,7 +148,10 @@ int main (int argc, char* argv[]) {
     int exit = 0;
     exit = sqlite3_open("airs.db", &db);
     char* msgErr;
+
     exit = sqlite3_exec(db, sql.c_str(), NULL, 0, &msgErr);
+    exit = sqlite3_exec(db, sql2.c_str(), NULL, 0, &msgErr);
+    exit = sqlite3_exec(db, sql3.c_str(), NULL, 0, &msgErr);
 
     if (exit != SQLITE_OK) {
         std::cerr << "Error creating table user, auth_logs" << std::endl;

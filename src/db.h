@@ -2,6 +2,8 @@
 #ifndef DB_H
 #define DB_H
 #include <iostream>
+#include <vector>
+#include <cstdint>
 
 //user type for db insertion
 struct User {
@@ -15,6 +17,10 @@ bool addUser(const std::string &username, const std::string &email, const std::s
 //get user by username
 bool getUser(const std::string &username, User &userOut); 
 
+//auth log
 bool authLogin(int userId, const std::string &ipAddr);
+
+//add key to keytable
+bool addKey(const std::vector<uint8_t> &uncensoredKey);
 
 #endif
