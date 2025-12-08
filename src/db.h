@@ -9,14 +9,11 @@ struct User {
     std::string email, username, p_hash;
 };
 
-//initialize database
-bool initDb(const std::string &dbName);
-
 //add user to db
 bool addUser(const std::string &username, const std::string &email, const std::string &hash);
 
 //get user by username
-bool getUser(const std::string &username, User &user); 
+bool getUser(const std::string &username, User &userOut); 
 
 bool authLogin(int userId, const std::string &ipAddr);
 
